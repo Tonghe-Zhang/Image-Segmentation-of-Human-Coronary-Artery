@@ -1,2 +1,3 @@
 # ImageSegmentationHumanStenosis
-Deep learning-based image segmentation of the medical images of human's stenosis. Computer Vision Course Project. 
+Deep learning-based image segmentation of the medical images of human's stenosis. 
+Final project of graduate course "Computer Vision and Image Analysis" at Tsinghua University.  
