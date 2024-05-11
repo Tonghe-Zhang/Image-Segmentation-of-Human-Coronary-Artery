@@ -18,7 +18,6 @@ class conv_block(nn.Module):
         x = self.conv(x)
         return x
 
-
 class up_conv(nn.Module):
     def __init__(self, ch_in, ch_out):
         super().__init__()
@@ -28,11 +27,9 @@ class up_conv(nn.Module):
             nn.BatchNorm2d(ch_out),
             nn.ReLU(inplace=True)
         )
-
     def forward(self, x):
         x = self.up(x)
         return x
-
 
 class UNet(nn.Module):
     def __init__(self, img_ch=1, output_ch=2):
@@ -47,10 +44,13 @@ class UNet(nn.Module):
 
         self.Up5 = up_conv(ch_in=1024, ch_out=512)
         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512)
+        
         self.Up4 = up_conv(ch_in=512, ch_out=256)
         self.Up_conv4 = conv_block(ch_in=512, ch_out=256)
+
         self.Up3 = up_conv(ch_in=256, ch_out=128)
         self.Up_conv3 = conv_block(ch_in=256, ch_out=128)
+
         self.Up2 = up_conv(ch_in=128, ch_out=64)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
 

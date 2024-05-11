@@ -1,0 +1,120 @@
+% add these two lines to your long preamble
+
+
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+
+
+
+
+
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\renewcommand*{\thefootnote}{\arabic{footnote}}
+
+
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\com}[1]{\textcolor{green}{ #1}}
+\newcommand{\revise}[1]{\textcolor{orange}{#1}}
+\newcommand{\algcomshort}[1]{\textcolor{blue}{{\hfill $\triangleright$ { #1}}}}
+\newcommand{\algcom}[1]{\textcolor{blue}{ #1}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%  font color setting  %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\green}[1]{\textcolor{ForestGreen}{#1}}
+\newcommand{\purple}[1]{\textcolor{purple}{#1}}
+\newcommand{\orange}[1]{\textcolor{orange}{#1}}
+\newcommand{\pink}[1]{\textcolor{pink}{#1}}
+\usepackage{hyperref}
+\hypersetup{colorlinks,linkcolor={ForestGreen},citecolor={blue},urlcolor={blue}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% mathematical commands %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\SetMathAlphabet{\mathcal}{bold}{OMS}{cmsy}{b}{n}
+\newcommand{\bigO}{\mathcal{O}}
+\newcommand{\bigOmega}{\mathcal{O}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\cX}{\mathcal{X}}
+
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\B}{\mathbf{B}}
+\renewcommand{\O}{\mathbb{O}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\lt}{\ensuremath <}
+\newcommand{\gt}{\ensuremath >}
+
+\newcommand{\D}{\mathscr{D}} 
+\renewcommand{\r}{\boldsymbol{\rho}}
+\newcommand{\p}{\mathbf{p}}
+\newcommand{\BS}{\Delta(\mathscr{S})}  %Belief State
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\|}{\Bigg|}
+\renewcommand{\[}{\left[}
+\renewcommand{\]}{\right]}
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\s}{\mathbf{s}}
+\renewcommand{\a}{\mathbf{a}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\n}{\mathbf{n}}
+\newcommand{\e}{\mathbf{e}}
+\renewcommand{\v}{\mathbf{v}}
+\renewcommand{\u}{\mathbf{u}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\y}{\mathbf{y}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\Regret}{\text{Regret}}
+\renewcommand{\wp}{\text{with probability at least $1-\delta$}}
+\newcommand{\abbr}{\overset{abbr}{=}}
+%spaces
+\newcommand{\sS}{\mathscr{S}}
+\newcommand{\sA}{\mathscr{A}} 
+\newcommand{\sO}{\mathscr{O}} 
+\newcommand{\sU}{\mathscr{U}}
+\newcommand{\sF}[1]{\mathscr{F}_{#1}}
+\newcommand{\sT}[1]{\mathcal{T}_{#1}} 
+%random variables
+\renewcommand{\S}{\mathbf{S}}
+\newcommand{\A}{\mathbf{A}}
+\renewcommand{\O}{\mathbf{O}} 
+\newcommand{\F}{{\boldsymbol{F}}}
+\newcommand{\f}{{f}}
+\newcommand{\btau}{\boldsymbol{\tau}}
+
+%matrices
+\newcommand{\bT}{\mathbb{T}}
+\newcommand{\bO}{\mathbb{O}}
+\newcommand{\bM}{\mathbb{M}}
+\newcommand{\bL}{\Lambda}
+\newcommand{\K}{\mathcal{K}}
+\renewcommand{\b}{{\vec{b}}}
+%Shortcuts for operators
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\newcommand{\Max}[1]{\underset{ #1 }{\max \ }}
+\newcommand{\Min}[1]{\underset{ #1 }{\min \ }}
+\newcommand{\Argmax}[1]{\underset{ #1 }{\argmax\ }}
+\newcommand{\Argmin}[1]{\underset{ #1 }{\argmin\ }}
+\newcommand{\sgn}{\text{sgn}}
+\newcommand{\Pm}[1]{\mathbb{P}_{\mathcal{P}}\left\{ #1 \right\}}
+%probability given the model
+\renewcommand{\Pr}[1]{\mathbb{P}_{\mathcal{P}}^\pi\left\{ #1 \right\}} %probability given the model and the policy
+\newcommand{\diag}[1]{\text{diag}\left(#1\right)}%diagonal matrix
+\renewcommand{\over}[1]{\overset{#1}{=}}
+\newcommand{\muu}[1]{\vec{\mu}_{#1}}
+\newcommand{\V}{\mathsf{V}}
+%sign function
+\newcommand{\sign}[1]{\sgn{#1}}
+%math symbols
+
