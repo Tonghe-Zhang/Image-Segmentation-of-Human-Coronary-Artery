@@ -1,0 +1,101 @@
+\documentclass{article}
+
+\input{header.tex}
+\input{commands.tex}
+
+\title{
+Computer Vision and Image Analysis
+\protect\\
+Course Project Proposal
+}
+
+\author{
+    Tonghe Zhang    \\
+    Third-year Undergraduate Student From EE class 7\\
+    Department of Electronic Engineering, Tsinghua University
+    \texttt{zhang-th21@mails.tsinghua.edu.cn}\\
+}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+
+
+\section{Introduction}
+This proposal draws the technical blueprint for the computer vision project, which aims to 
+train a neural network to execute image segementation task 
+on a human stenosis dataset. 
+
+\section{Preliminary Experimental Results}
+\paragraph*{Training}
+We run the simplest algorithm provided with the project description and we keep the hyperparametes unchanged, which indicates that we will train the model for 10 epochs. In each epoch 250 training samples are used.
+our model is trained on a single AMD A40 GPU. Empirically, running each epoch costs some 83 seconds. The loss curve in the entire training process is presented below:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth,height=0.35\textwidth]{loss_curve.png}
+\end{figure}
+We can see that the loss curve goes down quickly. 
+
+\paragraph*{Evaluation}
+When evaluating the models saved in different epochs with the validation set, we obtain the following result:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth,height=0.35\textwidth]{eval.png}
+\end{figure}
+which indicates that the best model in this simplest setting is 
+obtained in epoch 6 and further training only causes the function approximator 
+to overfit the training set. 
+
+\paragraph*{Testing}
+We test the trained model on the test set and obtain the following result:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth,height=0.45\textwidth]{test.png}
+\end{figure}
+We observe that the generalization ability of the model is quite strong, in that the 
+f1 score on the test set is close to that on the evaluation set. 
+However, the model cannot yield an F1 score higher than 40\% on the test set or the evaluation set. 
+
+\paragraph*{Remaining Problems}
+Although the training and evaluation curves seems natural, the F1 scores on 
+the evaluation set are all below 0.4, which is very low. 
+We cannot trust this model even if it is the best model obtained.
+We must try to improve the F1 score. 
+
+\section{Initiative for Improvement}
+
+\begin{itemize}
+    \item Better loss function: Week 12-13. 
+    We will try to use loss functions other than the Cross Entropy Loss to pay specail attention on an unbalanced dataset. 
+    For example we may try to use focal loss functions and compare the results.     
+    \item Better representation and architecture:  Week 12-13. 
+    We plan to draw inspiration from state-of-the-art computer vision models designs to enhance the representation and generalization 
+    ability of our model. For example, we might switch to using Visual Transformer, Detection Transformer and other architectures. 
+    We can also try to optimize the design of the U net to adapt to the small-scale dataset. 
+    \item Data augmentation: Week 14-15. 
+    a. Synthesize more data. We can train a diffusion model on our train set and generate new data for training to increase the volume and diversity of the data set, in the hope that 
+    we can improve the generalizability.   
+    b. Enhance the quality of the data. We also play to adopt classical image augmentation techniques, like increasing the contrast 
+    and rotating the image to discourage overfitting.
+\end{itemize}
+
+
+
+\bibliography{ref}
+\bibliographystyle{plain}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\onecolumn
+
+
+
+
+\end{document}
