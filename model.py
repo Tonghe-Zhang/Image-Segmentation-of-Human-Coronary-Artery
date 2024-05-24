@@ -132,10 +132,10 @@ class up_conv(nn.Module):
 Fill the additional entries with biliner or nearest interpolation etc.
 > Conv2d: 
 """
-class UNetDecoder(nn.Module):
-    def __init__(self,output_ch:int):
-        super(UNetDecoder, self).__init__()
 
+
+
+"""
         self.Up5 = up_conv(ch_in=1024, ch_out=512)
         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512)
 
@@ -150,27 +150,30 @@ class UNetDecoder(nn.Module):
 
         self.Conv_1x1 = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
 
-    def forward(self,encoded_features):
-        """
+        x1,x2,x3,x4,x5=encoded_features
+
+
+
         x1.shape=torch.Size([4, 64, 512, 512])
         x2.shape=torch.Size([4, 128, 256, 256])
         x3.shape=torch.Size([4, 256, 128, 128])
         x4.shape=torch.Size([4, 512, 64, 64])
         x5.shape=torch.Size([4, 1024, 32, 32])
+        
         d5.shape=torch.Size([4, 512, 64, 64])
         d4.shape=torch.Size([4, 256, 128, 128])
         d3.shape=torch.Size([4, 128, 256, 256])
         d2.shape=torch.Size([4, 64, 512, 512])
         d1.shape=torch.Size([4, 2, 512, 512])
-        """
-        x1,x2,x3,x4,x5=encoded_features
-        
+
+
         print(f"x1.shape={x1.shape}")
         print(f"x2.shape={x2.shape}")
         print(f"x3.shape={x3.shape}")
         print(f"x4.shape={x4.shape}")
         print(f"x5.shape={x5.shape}")
         
+
         # U-net decoder
         d5 = self.Up5(x5)
         d5 = torch.cat((x4, d5), dim=1)
@@ -187,7 +190,6 @@ class UNetDecoder(nn.Module):
         d3 = self.Up_conv3(d3)
         #print(f"d3.shape={d3.shape}")
 
-
         d2 = self.Up2(d3)
         d2 = torch.cat((x1, d2), dim=1)
         d2 = self.Up_conv2(d2)
@@ -195,76 +197,163 @@ class UNetDecoder(nn.Module):
 
         d1 = self.Conv_1x1(d2)
         #print(f"d1.shape={d1.shape}")
-        return d1
-        
-class ResUNet(nn.Module):
-    def __init__(self, num_classes=2):
-        super(ResUNet, self).__init__()
+"""
 
-        # Builing the encoder from resenet 50
-        self.model = resnet50(pretrained=True)  # Load pre-trained ResNet-50        
-        # freeze the pretrained encoder. only allow training of the U net decoder layers. 
-        for param in self.model.parameters():
-            param.requires_grad = False
 
-        # create learnable layer 1:
-        # input dimension: [N=4, 1, H=512, W=512], output dimension: [N=4, 64, H=512, W=512]
-        self.conv1=nn.Conv2d(1, 64, kernel_size=3, stride=1,padding=1, bias=True)
-        self.bn1=self.model.bn1
-        self.maxpool1=nn.MaxPool2d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
-        self.layer1=torch.nn.Sequential(self.conv1,self.bn1, self.maxpool1)
 
-        #create learnable layer 2:
-        # input dimension: [N=4, 64, H=512, W=512], output dimension: [N=4, 128, H=256, H=256]
-        self.conv2=nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=True)
-        self.bn2=nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.maxpool2=nn.MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
-        self.layer2=nn.Sequential(self.conv2, self.bn2, self.maxpool2)
-        
-        # layer 3: input dimension: [N=4, 128, H=256, H=256],
-        # output dimension: [4,256,128,128]
-        self.conv3=nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.bn3=nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.maxpool3=nn.MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
-        self.layer3=nn.Sequential(self.conv3, self.bn3, self.maxpool3)
+class UNetDecoderLayer(nn.Module):
+    def __init__(self, ch_in:int, ch_out:int):
+        super(UNetDecoderLayer, self).__init__()
+        self.Up = up_conv(ch_in, ch_out)
+        self.Conv = conv_block(ch_in, ch_out)
+    def forward(self,x_link,decoded):
+        decoded=self.Up(decoded)
+        decoded=torch.cat([x_link,decoded],dim=1)
+        decoded=self.Conv(decoded)
+        return decoded
 
-        #borrow other layers from resnet50
-        # layer 4: input dimension: [4,256,128,128], output dimension: [4, 512, 64, 64]
-        self.layer4=self.model.layer2
-        # layer 5: input dimension: [4, 512, 64, 64], output dimension: [4, 1024, 32, 32]
-        self.layer5=self.model.layer3
+class UNetDecoder(nn.Module):
+    def __init__(self,
+                 encoder_feat_ch=[1024, 512, 256, 128, 64],
+                 decoder_feat_ch=[512,  256, 128, 64, 2]
+                 ):
+        """
+        encoder_feat_ch: dimension of the channel of the encoder feature.  e.g. x5=[N,'C', H,W]
                 
-        # use the Unet decoder as the decoder
-        self.decoder = UNetDecoder(num_classes)
-        
-    def forward(self, x):
-        # Encoder layers forward pass
-        x1=self.layer1(x)     #x1: [4, 64, 512, 512]
-        x2=self.layer2(x1)    #x2: [4, 128, 256, 256]
-        x3=self.layer3(x2)    #x3: [4,256,128,128]     
-        x4=self.layer4(x3)	 #x4: [4, 512, 64, 64]
-        x5=self.layer5(x4)    #x5: [4, 1024, 32, 32]
-        encoder_embeddings=[x1,x2,x3,x4,x5]
-        
-       
-        print(f"x.shape={x.shape}")
-        print(f"x1.shape={x1.shape}")
-        print(f"x2.shape={x2.shape}")
-        print(f"x3.shape={x3.shape}")
-        print(f"x4.shape={x4.shape}")
-        print(f"x5.shape={x5.shape}")
+        """
+        super(UNetDecoder, self).__init__()
+
+        assert decoder_feat_ch[-1]==2
+
+        self.num_layers=len(decoder_feat_ch)
+
+        self.layer_Couts=decoder_feat_ch        #output channel dimension of each decoder layer.
+        self.output_ch=decoder_feat_ch[-1]      #output segmentation image channel dimension, which is 2 by default (grey figure)
+
+        self.layer_Cins=[_ for _ in range(self.num_layers)]   #input channel dimension of each decoder layer.
+        self.layer_Cins[0]=encoder_feat_ch[0]//2+encoder_feat_ch[1]
+        for i in range(1,self.num_layers-1):
+            self.layer_Cins[i]=self.layer_Couts[i-1]//2+encoder_feat_ch[i+1]
+            #print(f"i={i}, self.layer_Couts[{i}-1]={self.layer_Couts[i-1]},encoder_feat_ch[{i}]={encoder_feat_ch[i+1]}, self.layer_Cins[{i}]={self.layer_Cins[i]}")
+        self.layer_Cins[-1]=self.layer_Couts[-2]
 
         """
-        x.shape=torch.Size([4, 1, 512, 512])
-        x1.shape=torch.Size([4, 64, 128, 128])
-        x2.shape=torch.Size([4, 256, 128, 128])
-        x3.shape=torch.Size([4, 512, 64, 64])
-        x4.shape=torch.Size([4, 1024, 32, 32])
-        x5.shape=torch.Size([4, 2048, 16, 16])
-        exit()
+        print(self.layer_Cins)
+        print(self.layer_Couts)
+        self.layer_Cins:  [1024, 512, 256, 128, 64]
+        self.layer_Couts: [ 512, 256, 128,  64,  2]
         """
 
-        # Decoder
-        d1 = self.decoder(encoder_embeddings)
-        print(f"d1.shape={d1.shape}")
-        return d1
+        self.decoder_layers=nn.ModuleList()
+        for ch_in, ch_out in zip(self.layer_Cins, self.layer_Couts):
+            self.decoder_layers.append(UNetDecoderLayer(ch_in=ch_in,ch_out=ch_out))
+        
+        output_conv=nn.Conv2d(in_channels=decoder_feat_ch[-2], out_channels=self.output_ch, kernel_size=1, stride=1, padding=0)
+        self.decoder_layers.append(output_conv)
+
+    def forward(self,encoded_features):
+        # x5,x4,x3,x2,x1 = encoded_features
+        decoded_features=[ _ for _ in range(self.num_layers) ]
+        # d5, d4, d3, d2, d1
+
+        """
+        Decoder process, equivalent to 
+        d5 = self.Up5(x5)
+        d5 = torch.cat((x4, d5), dim=1)
+        d5 = self.Conv5(d5)                 C4+C5 -> 
+
+        d4 = self.Up4(d5)
+        d4 = torch.cat((x3, d4), dim=1)     
+        d4 = self.Conv4(d4)      
+
+        d3 = self.Up3(d4)
+        d3 = torch.cat((x2, d3), dim=1)
+        d3 = self.Conv3(d3)
+
+        d2 = self.Up2(d3)
+        d2 = torch.cat((x1, d2), dim=1)
+        d2 = self.Conv2(d2)
+
+        d1 = self.Conv_1x1(d2)
+
+        when there are five layers. 
+        """
+        d=encoded_features[0]
+        decoded_features[0]=self.decoder_layers[0](x_link=encoded_features[1],decoded=encoded_features[0])
+        for feat in range(1,self.num_layers-1):
+            d=decoded_features[feat-1]
+            x=encoded_features[feat+1]
+            d=self.decoder_layers[feat](x_link=x,decoded=d)
+            decoded_features[feat]=d
+        d=self.decoder_layers[-1](decoded_features[-2])
+        decoded_features[-1]=d
+
+        """
+        Current Architecture:
+
+        H and W:
+            after passing through each layer before the last layaer, H and W shrinks to 1/2. The last layer does not alter H and W. 
+        C:
+            channel changes according to "self.decoder_layer_ch"
+        
+        U-net also asks the H and W of x_{i-1} should be 2 times of that of x_{i}, while it does not restrict the relationship between x_i and x_{i+1}'s channels. 
+        However the encoder's channels x_5...x_1 should be the same as the decoder's "self.decoder_layer_ch", while the last channel of the decoder(output channel) 
+        is determined by the output image's configurations. (in our setting the grey image has channel 2.)
+        """
+
+        """
+        shape information:
+
+        x1.shape=torch.Size([4, 64, 512, 512])
+        x2.shape=torch.Size([4, 128, 256, 256])
+        x3.shape=torch.Size([4, 256, 128, 128])
+        x4.shape=torch.Size([4, 512, 64, 64])
+        x5.shape=torch.Size([4, 1024, 32, 32])
+        
+        d5.shape=torch.Size([4, 512, 64, 64])
+        d4.shape=torch.Size([4, 256, 128, 128])
+        d3.shape=torch.Size([4, 128, 256, 256])
+        d2.shape=torch.Size([4, 64, 512, 512])
+        d1.shape=torch.Size([4, 2, 512, 512])
+        
+        for i in decoded_features:
+             print(i.shape)
+        # for i in decoded_features:
+        #      print(f"d[{num_encodes-i+1}].shape={i.shape}")
+        """
+        for i, feat in enumerate(encoded_features):
+             print(f"encoded{i} ={feat.shape}")
+        for i, feat in enumerate(decoded_features):
+             print(f"decoded{i} ={feat.shape}")
+        return d
+
+decoder=UNetDecoder()
+
+
+minibathsize=4
+output_H=512
+output_W=512
+
+encode_ch=[64,128,256,512,1024]
+num_encodes=5
+
+input_H=output_H
+intpu_W=output_W
+encoded_features=[_ for _ in range(num_encodes)]
+for i in range(num_encodes):
+    encoded_features[num_encodes-1-i]=torch.randn(minibathsize,encode_ch[i],input_H//(2**i),intpu_W//(2**i))
+
+# for i in range(num_encodes):
+#     print(encoded_features[i].shape)
+
+d=decoder(encoded_features)
+
+"""
+x1=torch.randn(4,64,512,512)
+x2=torch.randn(4,128,256,256)
+x3=torch.randn(4,256,128,128)
+x4=torch.randn(4,512,64,64)
+x5=torch.randn(4,1024,32,32)
+encoded_features=[x5,x4,x3,x2,x1]
+encoder_channels=[1024,512,512,128,64]
+"""

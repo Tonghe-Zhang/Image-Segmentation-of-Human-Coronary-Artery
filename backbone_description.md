@@ -581,5 +581,169 @@ $$
 
 
 
+|                                 | N    | H             | C        | W             | Cstrt      |                |            |      |
+| ------------------------------- | ---- | ------------- | -------- | ------------- | ---------- | -------------- | ---------- | ---- |
+|                                 |      |               |          |               |            |                |            |      |
+| d5 = self.Up5(x5)               | N    | 2H5           | C5/2     | 2W5           |            |                |            |      |
+| d5 = torch.cat((x4, d5), dim=1) | N    | 2H5           | C5/2+C4  | 2W5           | x4:        | H4=2H5         | W4=2W5     |      |
+| d5 = self.Conv5(d5)             | N    | 2H5           | C4’      | 2W5           | **conv5:** | **C5/2+C4**->  | C4’        |      |
+| d4 = self.Up4(d5)               | N    | 4H5           | C4’/2    | 4W5           |            |                |            |      |
+| d4 = torch.cat((x3, d4), dim=1) | N    | 4H5           | C4’+C3   | 4W5           | x3:        | H3=4H5         | W3=4W5     |      |
+| d4 = self.Conv4(d4)             | N    | 4H5           | C3’      | 4W**5**       | **conv4:** | C4’/2+**C3**-> | C3’        |      |
+| d3 = self.Up3(d4)               | N    | 8H5           | C3’/2    | 8W5           |            |                |            |      |
+| d3 = torch.cat((x2, d3), dim=1) | N    | 8H5           | C3’+C2   | 8W5           | x2:        | H2=8H5         | W2=8W5     |      |
+| d3 = self.Conv3(d3)             | N    | 8H5           | C2’      | 8W5           | **conv3:** | C3’/2+**C2**-> | C2’        |      |
+| d2 = self.Up2(d3)               | N    | 16H5          | C2’/2    | 16W5          |            |                |            |      |
+| d2 = torch.cat((x1, d2), dim=1) | N    | 16H5          | C2’/2+C1 | 16W5          | x1:        | H1=16H5        | W1=16W5    |      |
+| d2 = self.Conv2(d2)             | N    | 16H5          | C1’      | 16W5          | **conv2:** | C2’/2+**C1**-> | C1’        |      |
+| d1 = self.Conv_1x1(d2)          |      | **Hfig=16H5** |          | **Wfig=16W5** | **conv1**  | C1’->          | **Cout=2** |      |
+|                                 |      |               |          |               |            |                |            |      |
+
+
+
+If we pick five layers of U-net decoder with Figure size (512, 512). we must ensure
+
+1. x5 is of shape (N, C5, 32, 32) and x4, x3, x2, x1’ height and width grows exponentially (power 2)
+
+1. We can design the channels of hidden layers freely, for example setting
+
+   conv5.out=C4’=512, 
+
+   C3’=256, 
+
+   C2’=128, 
+
+   C1’=64, 
+
+   But we must ensure that
+
+   first decoder layer input channel dimension is C5/2+C4
+
+   last decoder layer output channel dimension is Cout=2
+   $$
+   C^{i}_{\text{in}}=(C^{i-1}_{\text{out}}//2+C_{i+1})
+   $$
+   
+
+   
+
+
+
+UNetDecoder(
+  (decoder_layers): ModuleList(
+    (0): UNetDecoderLayer(
+      (Up): up_conv(
+        (up): Sequential(
+          (0): Upsample(scale_factor=2.0, mode='nearest')
+          (1): Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (3): ReLU(inplace=True)
+        )
+      )
+      (Conv): conv_block(
+        (conv): Sequential(
+          (0): Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (1): UNetDecoderLayer(
+      (Up): up_conv(
+        (up): Sequential(
+          (0): Upsample(scale_factor=2.0, mode='nearest')
+          (1): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (3): ReLU(inplace=True)
+        )
+      )
+      (Conv): conv_block(
+        (conv): Sequential(
+          (0): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (2): UNetDecoderLayer(
+      (Up): up_conv(
+        (up): Sequential(
+          (0): Upsample(scale_factor=2.0, mode='nearest')
+          (1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (3): ReLU(inplace=True)
+        )
+      )
+      (Conv): conv_block(
+        (conv): Sequential(
+          (0): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (3): UNetDecoderLayer(
+      (Up): up_conv(
+        (up): Sequential(
+          (0): Upsample(scale_factor=2.0, mode='nearest')
+          (1): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (3): ReLU(inplace=True)
+        )
+      )
+      (Conv): conv_block(
+        (conv): Sequential(
+          (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (4): UNetDecoderLayer(
+      (Up): up_conv(
+        (up): Sequential(
+          (0): Upsample(scale_factor=2.0, mode='nearest')
+          (1): Conv2d(64, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (2): BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (3): ReLU(inplace=True)
+        )
+      )
+      (Conv): conv_block(
+        (conv): Sequential(
+          (0): Conv2d(64, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(2, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (5): Conv2d(64, 2, kernel_size=(1, 1), stride=(1, 1))
+  )
+)
+
+
+
+
+
+   
+
+​    
+
+
+
 
 
