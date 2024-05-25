@@ -62,22 +62,93 @@ x5.shape=torch.Size([4, 2048, 16, 16])
 
 **The output channel dimension is assumed to be the number of classes on the ImageNet, which is 1,000. It can also be changed with additional fully connected layers.** 
 
+​	
+
+for name, child in model.named_children():
+
+​	print(name)	
+
+conv1
+bn1
+relu
+maxpool
+layer1
+layer2
+layer3
+layer4
+avgpool
+fc
+
+
+
+**Resnet 50**	
+
+| layer name  | C        | H        | W        |
+| ----------- | -------- | -------- | -------- |
+| Input       | **1**    | H        | W        |
+| conv1       | 64       | H/2      | W/2      |
+| bn1         | 64       | H/2      | W/2      |
+| **relu**    | **64**   | **H/2**  | **W/2**  |
+| maxpool     | 64       | H/4      | H/4      |
+| **layer 1** | **256**  | **H/4**  | **W/4**  |
+| **layer 2** | **512**  | **H/8**  | **W/8**  |
+| **layer 3** | **1024** | **H/16** | **W/16** |
+| **layer 4** | **2048** | **H/32** | **H/32** |
+| avgpool     | 2048     | 1        | 1        |
+| fc          | 1000     | 0        | 0        |
+
+
+
+there are 5 layers of feature being extracted as encoded_feature. 
+after name of layer=relu, output is of shape torch.Size([4, 64, 256, 256])   
+after name of layer=layer1, output is of shape torch.Size([4, 256, 128, 128])
+after name of layer=layer2, output is of shape torch.Size([4, 512, 64, 64])  
+after name of layer=layer3, output is of shape torch.Size([4, 1024, 32, 32]) 
+after name of layer=layer4, output is of shape torch.Size([4, 2048, 16, 16])
 
 
 
 
-**conv1**: 64 -> 64
-Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+
+
+
+
+
+x=torch.randn(4,3,**512,512**)
+
+**conv1**
+
+torch.Size([4, 64, 256, 256])
+
 **bn1**
-BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+
+torch.Size([4, 64, 256, 256])
+
 **relu**
-ReLU(inplace=True)
+
+torch.Size([4, 64, **256, 256**])
+
 **maxpool**
+
+torch.Size([4, 64, 128, 128])
+
+
+
+
+
+**conv1: channel 3 -> 64, Height and Width /=2**: 
+Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+**bn1: Channel 64-> 64, Height and Width dont’ change.**
+BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+**relu: Channel, Height, Width keep the same.**
+ReLU(inplace=True)
+**maxpool**:    **Height and Width** **/=2**
+
 MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
 
 
 
-**layer1**:  **64–> 256**
+**layer1**:  **Channel 64–> 256**    **Height and Width don’t change** 
 Sequential(
   (0): Bottleneck(
     (conv1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
@@ -112,7 +183,7 @@ Sequential(
   )
 )
 
-**layer2:  **  **256–>512 **
+**layer2:  **  **Channel: 256–>512     Height and Width /=2**
 Sequential(
   (0): Bottleneck(
     (conv1): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
@@ -155,7 +226,7 @@ Sequential(
     (relu): ReLU(inplace=True)
   )
 )
-**layer3: 512 -> 1024**
+**layer3: channel 512 -> 1024  Width and Height /=2**
 Sequential(
   (0): Bottleneck(
     (conv1): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
@@ -216,7 +287,7 @@ Sequential(
     (relu): ReLU(inplace=True)
   )
 )
-**layer4: 1024 -> 2048**
+**layer4: Channel: 1024 -> 2048 Height and Width /=2** 
 Sequential(
   (0): Bottleneck(
     (conv1): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
@@ -250,9 +321,9 @@ Sequential(
     (relu): ReLU(inplace=True)
   )
 )
-avgpool
+**avgpool: Channel don’t change, Height and Width forced to be (1,1)** 
 AdaptiveAvgPool2d(output_size=(1, 1))
-fc
+**fc: Channel 2048 to 1000(output category class), Height and Width vanishes(single target classification)**
 Linear(in_features=2048, out_features=1000, bias=True)
 
 
@@ -624,7 +695,7 @@ If we pick five layers of U-net decoder with Figure size (512, 512). we must ens
    C^{i}_{\text{in}}=(C^{i-1}_{\text{out}}//2+C_{i+1})
    $$
    
-
+   
    
 
 
@@ -742,6 +813,58 @@ UNetDecoder(
    
 
 ​    
+
+
+
+
+
+
+
+
+
+|                                 | N    | H             | C      | W             | Cstrt      |              |            |      |
+| ------------------------------- | ---- | ------------- | ------ | ------------- | ---------- | ------------ | ---------- | ---- |
+|                                 |      |               |        |               |            |              |            |      |
+| d5 = self.Up5(x5)               | N    | 2H5           | C4’    | 2W5           |            |              |            |      |
+| d5 = torch.cat((x4, d5), dim=1) | N    | 2H5           | C4’+C4 | 2W5           | x4:        | H4=2H5       | W4=2W5     |      |
+| d5 = self.Conv5(d5)             | N    | 2H5           | C4’    | 2W5           | **conv5:** | **C4‘+C4**   | C4’        |      |
+| d4 = self.Up4(d5)               | N    | 4H5           | C3’    | 4W5           |            |              |            |      |
+| d4 = torch.cat((x3, d4), dim=1) | N    | 4H5           | C3’+C3 | 4W5           | x3:        | H3=4H5       | W3=4W5     |      |
+| d4 = self.Conv4(d4)             | N    | 4H5           | C3’    | 4W**5**       | **conv4:** | C3’+**C3**   | C3’        |      |
+| d3 = self.Up3(d4)               | N    | 8H5           | C2’    | 8W5           |            |              |            |      |
+| d3 = torch.cat((x2, d3), dim=1) | N    | 8H5           | C2’+C2 | 8W5           | x2:        | H2=8H5       | W2=8W5     |      |
+| d3 = self.Conv3(d3)             | N    | 8H5           | C2’    | 8W5           | **conv3:** | C2’+**C2**-> | C2’        |      |
+| d2 = self.Up2(d3)               | N    | 16H5          | C1’    | 16W5          |            |              |            |      |
+| d2 = torch.cat((x1, d2), dim=1) | N    | 16H5          | C1’+C1 | 16W5          | x1:        | H1=16H5      | W1=16W5    |      |
+| d2 = self.Conv2(d2)             | N    | 16H5          | C1’    | 16W5          | **conv2:** | C1’+**C1**-> | C1’        |      |
+| d1 = self.Conv_1x1(d2)          |      | **Hfig=16H5** |        | **Wfig=16W5** | **conv1**  | C1’->        | **Cout=2** |      |
+|                                 |      |               |        |               |            |              |            |      |
+
+
+
+If we pick five layers of U-net decoder with Figure size (512, 512). we must ensure
+
+1. x5 is of shape (N, C5, 32, 32) and x4, x3, x2, x1’ height and width grows exponentially (power 2)
+
+1. We can design the channels of hidden layers freely, for example setting
+
+   conv5.out=C4’=512, 
+
+   C3’=256, 
+
+   C2’=128, 
+
+   C1’=64, 
+
+   But we must ensure that
+
+   first decoder layer input channel dimension is C5/2+C4
+
+   last decoder layer output channel dimension is Cout=2
+   $$
+   C^{i}_{\text{in}}=(C^{i-1}_{\text{out}}//2+C_{i+1})
+   $$
+   
 
 
 

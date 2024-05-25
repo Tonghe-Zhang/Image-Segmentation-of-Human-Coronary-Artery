@@ -123,7 +123,7 @@ class up_conv(nn.Module):
             nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm2d(ch_out),
             nn.ReLU(inplace=True)
-        )
+        )            #nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
     def forward(self, x):
         x = self.up(x)
         return x
@@ -204,11 +204,16 @@ Fill the additional entries with biliner or nearest interpolation etc.
 class UNetDecoderLayer(nn.Module):
     def __init__(self, ch_in:int, ch_out:int):
         super(UNetDecoderLayer, self).__init__()
+        self.ch_in=ch_in
+        self.ch_out=ch_out
         self.Up = up_conv(ch_in, ch_out)
         self.Conv = conv_block(ch_in, ch_out)
     def forward(self,x_link,decoded):
+        print(f"x_link={x_link.shape}, d={decoded.shape}, ch_in={self.ch_in}, ch_out={self.ch_out}")
         decoded=self.Up(decoded)
+        print(f"after up, decoded={decoded.shape}")
         decoded=torch.cat([x_link,decoded],dim=1)
+        print(f"after cat, decoded={decoded.shape}")
         decoded=self.Conv(decoded)
         return decoded
 
@@ -218,12 +223,15 @@ class UNetDecoder(nn.Module):
                  decoder_feat_ch=[512,  256, 128, 64, 2]
                  ):
         """
-        encoder_feat_ch: dimension of the channel of the encoder feature.  e.g. x5=[N,'C', H,W]
-                
+        encoder_feat_ch: dimension of the channel of the encoder feature. Input order should be in decreasing order, x5, x4, x3, x2, x1
         """
         super(UNetDecoder, self).__init__()
 
         assert decoder_feat_ch[-1]==2
+
+
+        self.output_W=512
+        self.output_H=512
 
         self.num_layers=len(decoder_feat_ch)
 
@@ -231,15 +239,19 @@ class UNetDecoder(nn.Module):
         self.output_ch=decoder_feat_ch[-1]      #output segmentation image channel dimension, which is 2 by default (grey figure)
 
         self.layer_Cins=[_ for _ in range(self.num_layers)]   #input channel dimension of each decoder layer.
-        self.layer_Cins[0]=encoder_feat_ch[0]//2+encoder_feat_ch[1]
-        for i in range(1,self.num_layers-1):
-            self.layer_Cins[i]=self.layer_Couts[i-1]//2+encoder_feat_ch[i+1]
-            #print(f"i={i}, self.layer_Couts[{i}-1]={self.layer_Couts[i-1]},encoder_feat_ch[{i}]={encoder_feat_ch[i+1]}, self.layer_Cins[{i}]={self.layer_Cins[i]}")
+        #self.layer_Cins[0]=encoder_feat_ch[0]//2+encoder_feat_ch[1]
+        for i in range(0,self.num_layers-1):
+            #self.layer_Cins[i]=self.layer_Couts[i-1]//2+encoder_feat_ch[i+1]
+            self.layer_Cins[i]=self.layer_Couts[i]+encoder_feat_ch[i+1]
+            print(f"i={i}, self.layer_Couts[{i}]={self.layer_Couts[i]},\
+                  encoder_feat_ch[{i+1}]={encoder_feat_ch[i+1]},\
+                  self.layer_Cins[{i}]={self.layer_Cins[i]}")
         self.layer_Cins[-1]=self.layer_Couts[-2]
 
-        """
+        
         print(self.layer_Cins)
         print(self.layer_Couts)
+        """
         self.layer_Cins:  [1024, 512, 256, 128, 64]
         self.layer_Couts: [ 512, 256, 128,  64,  2]
         """
@@ -254,8 +266,11 @@ class UNetDecoder(nn.Module):
     def forward(self,encoded_features):
         # x5,x4,x3,x2,x1 = encoded_features
         decoded_features=[ _ for _ in range(self.num_layers) ]
-        # d5, d4, d3, d2, d1
 
+        if encoded_features[0].shape[2:] != torch.Size([self.output_H//2**(self.num_layers-1), self.output_W//2**(self.num_layers-1)]):
+            raise ValueError(f"Expected encoder output of shape [N, C, {self.output_H//2**(self.num_layers-1)}, {self.output_W//2**(self.num_layers-1)}], but got {encoded_features[0].shape} !")
+            
+        # d5, d4, d3, d2, d1
         """
         Decoder process, equivalent to 
         d5 = self.Up5(x5)
@@ -278,11 +293,13 @@ class UNetDecoder(nn.Module):
 
         when there are five layers. 
         """
+
         d=encoded_features[0]
         decoded_features[0]=self.decoder_layers[0](x_link=encoded_features[1],decoded=encoded_features[0])
         for feat in range(1,self.num_layers-1):
             d=decoded_features[feat-1]
             x=encoded_features[feat+1]
+            
             d=self.decoder_layers[feat](x_link=x,decoded=d)
             decoded_features[feat]=d
         d=self.decoder_layers[-1](decoded_features[-2])
@@ -290,7 +307,6 @@ class UNetDecoder(nn.Module):
 
         """
         Current Architecture:
-
         H and W:
             after passing through each layer before the last layaer, H and W shrinks to 1/2. The last layer does not alter H and W. 
         C:
@@ -325,27 +341,28 @@ class UNetDecoder(nn.Module):
              print(f"encoded{i} ={feat.shape}")
         for i, feat in enumerate(decoded_features):
              print(f"decoded{i} ={feat.shape}")
+
+        if d.shape[1:] != torch.Size([2,self.output_H,self.output_W]):
+            raise ValueError(f"Expected decoder output of shape [N,2,{self.output_H},{self.output_W}], but got {d.shape} !")
         return d
-
-decoder=UNetDecoder()
-
 
 minibathsize=4
 output_H=512
 output_W=512
 
-encode_ch=[64,128,256,512,1024]
+encode_ch=[2048,1024,512,256,128]   #[1024, 512, 256, 128, 64]
 num_encodes=5
 
 input_H=output_H
 intpu_W=output_W
 encoded_features=[_ for _ in range(num_encodes)]
 for i in range(num_encodes):
-    encoded_features[num_encodes-1-i]=torch.randn(minibathsize,encode_ch[i],input_H//(2**i),intpu_W//(2**i))
+    encoded_features[i]=torch.randn(minibathsize,encode_ch[i],input_H//(2**(num_encodes-1-i)),intpu_W//(2**(num_encodes-1-i)))
 
-# for i in range(num_encodes):
-#     print(encoded_features[i].shape)
+for i in range(num_encodes):
+    print(encoded_features[i].shape)
 
+decoder=UNetDecoder(encoder_feat_ch=encode_ch, decoder_feat_ch=[512, 256, 128, 64, 2])
 d=decoder(encoded_features)
 
 """
