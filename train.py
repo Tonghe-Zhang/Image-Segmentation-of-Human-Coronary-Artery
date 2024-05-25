@@ -11,7 +11,8 @@ import torch.nn as nn
 
 from utils import current_time, save_model, load_hyper_param, load_model, visualize_eval, visualize_train, log_eval,load_set, make_all_dirs
 from loss import FocalLoss
-from model import UNet_vanilla, ResUNet
+from model import UNet_vanilla
+from modelbackbone import BackBonedUNet
 from visualize import visualize
 
 def train():
@@ -24,7 +25,7 @@ def train():
     if model_class=="UNet_vanilla":
         model = UNet_vanilla().to(device)
     elif model_class=="ResUNet":
-        model=ResUNet().to(device)
+        model=BackBonedUNet().to(device)
     # model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
     
     # loss function

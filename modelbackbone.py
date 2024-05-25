@@ -176,11 +176,13 @@ class UNetBackBoneEncoder(nn.Module):
         self.prt_progress=prt_prgress
         
         # assert self.num_extraction_layers == 5
-
+        
         if backbone_name=='resnet50':
             self.backbone=models.resnet50(pretrained=True)
             # modify the first input layer to allow for grey image input. 
             self.backbone.conv1=nn.Conv2d(in_channels=1, out_channels=64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        else:
+            raise NotImplementedError(f"We have only implemented backboned encoder for resnet50, but we got {backbone_name} instead !")
 
         if freeze_backbone:
             #Todo: better not fix the first input layer, as it is not learnt.
@@ -282,27 +284,4 @@ class BackBonedUNet(nn.Module):
         if self.prt_progress:
             print(f"Return predicted segmentation mask of shape{predicted_masks.shape}")
         return predicted_masks
-
-
-def test_model():
-    """
-    minibathsize=4
-    output_H=512
-    output_W=512
-    input_H=output_H
-    intpu_W=output_W
-
-    encode_ch=[2049, 1022, 517,252,61]   #[1024, 512, 256, 128, 64]
-    print(f"generate data of shape:")
-    encoded_features=[_ for _ in range(num_encodes)]
-    for i in range(num_encodes):
-        encoded_features[i]=torch.randn(minibathsize,encode_ch[i],input_H//(2**(num_encodes-1-i)),intpu_W//(2**(num_encodes-1-i)))   #   #
-
-    for i in range(num_encodes):
-        print(encoded_features[i].shape)
-    """
-    resUnet=BackBonedUNet()
-    x=torch.randn(4,1,512,512)
-    prediction=resUnet(x)
-
 

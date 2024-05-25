@@ -108,3 +108,28 @@ def calculate_f1_score(predicted_masks,masks):
     fn = (masks * ~predicted_masks).sum()        # actually one, but you take it as zero.
     f1 = tp / (tp + 0.5 * (fp + fn))
     return f1
+
+
+def test_model():
+    """
+    minibathsize=4
+    output_H=512
+    output_W=512
+    input_H=output_H
+    intpu_W=output_W
+
+    encode_ch=[2049, 1022, 517,252,61]   #[1024, 512, 256, 128, 64]
+    print(f"generate data of shape:")
+    encoded_features=[_ for _ in range(num_encodes)]
+    for i in range(num_encodes):
+        encoded_features[i]=torch.randn(minibathsize,encode_ch[i],input_H//(2**(num_encodes-1-i)),intpu_W//(2**(num_encodes-1-i)))   #   #
+
+    for i in range(num_encodes):
+        print(encoded_features[i].shape)
+    """
+    from modelbackbone import BackBonedUNet
+    resUnet=BackBonedUNet()
+    x=torch.randn(4,1,512,512)
+    prediction=resUnet(x)
+
+
